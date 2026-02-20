@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoundSystem | PRO ENGINE</title>
+    
+    <script src="https://unpkg.com/wavesurfer.js@7"></script>
+    <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        /* HIGH-DENSITY CSS CORE 
+           Architected for a seamless iOS-Hacker aesthetic.
+           Strictly maintaining 1000+ line intent.
+        */
+        :root {
+            --bg-deep: #000000;
+            --ios-gray: #1c1c1e;
+            --ios-bright: #2c2c2e;
+            --neon: #2ce2a2;
+            --neon-glow: rgba(44, 226, 162, 0.4);
+            --danger: #ff3b30;
+            --danger-glow: rgba(255, 59, 48, 0.4);
+            --ios-blue: #0a84ff;
+            --glass: rgba(28, 28, 30, 0.9);
+            --blur: blur(65px);
+            --border: 1px solid rgba(255, 255, 255, 0.12);
+            --font-main: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --transition-ultra: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            --shadow-hd: 0 45px 90px rgba(0,0,0,0.8);
+        }
+
+        * { 
+            box-sizing: border-box; 
+            outline: none; 
+            -webkit-font-smoothing: antialiased; 
+            scrollbar-width: none; 
+        }
+        *::-webkit-scrollbar { display: none; }
+
+        body {
+            background: var(--bg-deep);
+            color: white;
+            font-family: var(--font-main);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            user-select: none;
+            letter-spacing: -0.01em;
+        }
+
+        /* ----------------------------------------------------------------
+           LAYOUT: MAIN STAGE STRUCTURE
+           ---------------------------------------------------------------- */
+        #main-stage {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: 
+                radial-gradient(circle at 5% 5%, rgba(44, 226, 162, 0.04) 0%, transparent 45%),
+                radial-gradient(circle at 95% 95%, rgba(10, 132, 255, 0.04) 0%, transparent 45%);
+        }
+
+        #grid-canvas {
+            flex: 1;
+            padding: 85px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+            gap: 75px;
+            overflow-y: auto;
+            align-content: start;
+        }
+
+        /* ----------------------------------------------------------------
+           SOUND TILE ARCHITECTURE
+           ---------------------------------------------------------------- */
+        .sound-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            animation: tileSpawn 0.8s cubic-bezier(0.2, 1, 0.2, 1) forwards;
+        }
+
+        @keyframes tileSpawn { 
+            from { opacity: 0; transform: translateY(60px) scale(0.85); } 
+            to { opacity: 1; transform: translateY(0) scale(1); } 
+        }
+
+        .tile-popups {
+            position: absolute;
+            top: -40px;
+            display: flex;
+            gap: 20px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: var(--transition-ultra);
+            z-index: 600;
+        }
+        .sound-wrapper:hover .tile-popups { opacity: 1; transform: translateY(0); }
+
+        .pop-btn {
+            width: 48px; height: 48px;
+            background: white; color: black;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 17px; box-shadow: var(--shadow-hd); cursor: pointer; transition: 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .pop-btn:hover { transform: scale(1.4) rotate(15deg); background: var(--neon); }
+        .pop-btn.del:hover { background: var(--danger); color: white; }
+
+        .sound-tile {
+            width: 185px; height: 185px;
+            background: var(--ios-gray);
+            backdrop-filter: var(--blur);
+            border: var(--border);
+            border-radius: 55px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; position: relative; transition: var(--transition-ultra);
+            z-index: 10;
+        }
+        .sound-tile:hover {
+            transform: scale(1.15) translateY(-15px);
+            border-color: var(--neon);
+            box-shadow: 0 50px 80px rgba(0,0,0,0.8), 0 0 50px var(--neon-glow);
+            background: var(--ios-bright);
+        }
+        .sound-tile i { font-size: 65px; color: #333; transition: 0.5s; }
+        .sound-tile:hover i { color: var(--neon); transform: rotate(-8deg); }
+
+        .name-input { 
+            margin-top: 35px; background: transparent; border: none; 
+            color: white; text-align: center; font-weight: 800; font-size: 19px; 
+            width: 180px; letter-spacing: -0.5px;
+        }
+        .key-input { 
+            margin-top: 12px; background: rgba(44, 226, 162, 0.1); 
+            border: 1px solid rgba(44, 226, 162, 0.2); color: var(--neon); 
+            text-align: center; font-size: 13px; width: 110px; padding: 8px; 
+            border-radius: 14px; font-weight: 900; 
+        }
+
+        /* ----------------------------------------------------------------
+           ADD TILE COMPONENT
+           ---------------------------------------------------------------- */
+        .add-wrapper { position: relative; width: 185px; height: 185px; }
+        .add-tile { 
+            width: 185px; height: 185px; 
+            border: 4px dashed #333; 
+            border-radius: 55px; display: flex; align-items: center; justify-content: center; 
+            font-size: 55px; color: #333; transition: 0.5s; 
+        }
+        .add-wrapper:hover .add-tile { border-color: var(--neon); color: var(--neon); transform: rotate(90deg); }
+        
+        .add-overlay { 
+            position: absolute; inset: 0; background: var(--ios-gray); 
+            border-radius: 55px; display: flex; flex-direction: column; 
+            opacity: 0; pointer-events: none; transition: var(--transition-ultra); 
+            overflow: hidden; z-index: 1100; box-shadow: var(--shadow-hd); 
+        }
+        .add-wrapper:hover .add-overlay { opacity: 1; pointer-events: auto; }
+        .overlay-opt { 
+            flex: 1; display: flex; align-items: center; justify-content: center; 
+            gap: 15px; font-size: 15px; font-weight: 900; cursor: pointer; 
+            border-bottom: 1px solid rgba(255,255,255,0.03); 
+        }
+        .overlay-opt:hover { background: var(--ios-bright); color: var(--neon); }
+
+        /* ----------------------------------------------------------------
+           RIGHT SIDE PANEL ARCHITECTURE
+           ---------------------------------------------------------------- */
+        #side-panel {
+            width: 520px;
+            background: var(--glass);
+            backdrop-filter: var(--blur);
+            border-left: var(--border);
+            display: flex; flex-direction: column; z-index: 5000;
+        }
+
+        .tab-switcher { display: flex; padding: 70px 45px 25px 45px; gap: 15px; }
+        .tab-btn { 
+            flex: 1; padding: 22px; background: var(--ios-bright); 
+            border: none; color: #555; border-radius: 25px; 
+            font-weight: 900; cursor: pointer; font-size: 13px; 
+            text-transform: uppercase; transition: 0.4s; letter-spacing: 2px;
+        }
+        .tab-btn.active { background: white; color: black; box-shadow: 0 15px 35px rgba(0,0,0,0.6); }
+
+        .panel-content { flex: 1; padding: 45px; display: none; overflow-y: auto; }
+        .panel-content.active { display: block; }
+
+        /* VISUAL HEADERS */
+        .panel-header-visual {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 20px 0 55px 0;
+        }
+        .large-icon {
+            font-size: 130px; color: #222; margin-bottom: 30px;
+            filter: drop-shadow(0 0 30px rgba(255,255,255,0.03));
+            transition: 1s cubic-bezier(0.2, 1, 0.2, 1);
+        }
+        .active-icon { color: var(--ios-blue) !important; }
+
+        /* MIXER CONTROLS */
+        .control-card { background: var(--ios-gray); padding: 40px; border-radius: 50px; margin-bottom: 40px; border: var(--border); box-shadow: 0 25px 50px rgba(0,0,0,0.4); }
+        .card-label { display: flex; justify-content: space-between; font-size: 13px; font-weight: 900; color: #444; text-transform: uppercase; margin-bottom: 35px; letter-spacing: 2px; }
+        .card-label span:last-child { color: var(--neon); }
+        
+        input[type="range"] { -webkit-appearance: none; width: 100%; height: 16px; background: #222; border-radius: 20px; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 38px; height: 38px; background: white; border-radius: 50%; box-shadow: 0 15px 30px rgba(0,0,0,0.6); cursor: pointer; border: 5px solid var(--ios-gray); }
+
+        /* ENGINE RESET BUTTON */
+        .btn-reset {
+            width: 100%; padding: 28px; border-radius: 30px;
+            background: transparent; border: 2px solid #333;
+            color: #666; font-weight: 900; font-size: 15px;
+            text-transform: uppercase; letter-spacing: 3px;
+            cursor: pointer; transition: 0.4s;
+        }
+        .btn-reset:hover { border-color: var(--neon); color: var(--neon); background: rgba(44, 226, 162, 0.05); }
+
+        /* RECORDER */
+        #timer { font-size: 95px; font-weight: 200; text-align: center; margin-bottom: 60px; font-variant-numeric: tabular-nums; color: white; }
+        .rec-btn-main { width: 140px; height: 140px; border-radius: 50%; border: 9px solid white; display: flex; align-items: center; justify-content: center; margin: 0 auto; cursor: pointer; transition: 0.4s; }
+        .rec-btn-inner { width: 105px; height: 105px; background: var(--danger); border-radius: 50%; transition: 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .recording .rec-btn-inner { border-radius: 35px; transform: scale(0.6); }
+
+        /* ----------------------------------------------------------------
+           BOTTOM DOCK CONTROLS
+           ---------------------------------------------------------------- */
+        #bottom-dock { height: 180px; display: flex; justify-content: center; align-items: center; gap: 90px; background: linear-gradient(to top, #000, transparent); padding-bottom: 70px; }
+        .dock-circle { width: 110px; height: 110px; background: var(--ios-gray); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 38px; cursor: pointer; border: var(--border); transition: var(--transition-ultra); color: white; }
+        .dock-circle:hover { transform: translateY(-25px) scale(1.25); background: white; color: black; }
+        
+        /* Panic Red Logic */
+        .dock-circle.stop { background: var(--danger); border-color: var(--danger); }
+        .dock-circle.stop:hover { background: #ff453a; color: white; box-shadow: 0 0 50px var(--danger-glow); }
+        
+        .dock-circle.active { background: var(--neon); color: black; box-shadow: 0 0 60px var(--neon-glow); }
+
+        /* ----------------------------------------------------------------
+           EDITOR MODAL: PRECISION ENGINE
+           ---------------------------------------------------------------- */
+        .editor-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.98); backdrop-filter: blur(60px); z-index: 99999; align-items: center; justify-content: center; }
+        .editor-modal { background: var(--ios-gray); width: 1100px; padding: 80px; border-radius: 80px; border: var(--border); box-shadow: 0 60px 120px rgba(0,0,0,1); }
+        #wave-editor { background: #000; border-radius: 45px; margin: 45px 0; border: 1px solid #222; overflow: hidden; }
+        .preview-btn { background: var(--ios-bright); padding: 35px; border-radius: 35px; margin-bottom: 35px; text-align: center; cursor: pointer; font-weight: 900; font-size: 20px; transition: 0.3s; }
+        .preview-btn.playing { background: var(--ios-blue); color: white; }
+        .ebtn { flex: 1; padding: 35px; border-radius: 35px; border: none; font-weight: 900; font-size: 20px; cursor: pointer; }
+        .ebtn-save { background: var(--neon); color: black; }
+    </style>
+</head>
+<body onclick="Titan.boot()">
+
+<div id="main-stage">
+    <div style="padding: 80px 85px 0 85px; display:flex; justify-content:space-between; align-items:flex-end;">
+        <div>
+            <h1 style="margin:0; font-size:65px; font-weight:900; letter-spacing:-5px; color:white;">SOUND <span style="color:var(--neon)">BOARD</span></h1>
+            <p style="margin:15px 0 0 0; color:#333; font-size:16px; font-weight:900; letter-spacing:7px; text-transform:uppercase;">#v31</p>
+        </div>
+        <div style="border:var(--border); padding:18px 40px; border-radius:25px; font-size:14px; font-weight:900; color:var(--neon); letter-spacing:2px; background:rgba(255,255,255,0.02); text-transform:uppercase;">
+            Security: Locked
+        </div>
+    </div>
+
+    <div id="grid-canvas">
+        <div class="add-wrapper">
+            <div class="add-tile"><i class="fa-solid fa-plus"></i></div>
+            <div class="add-overlay">
+                <div class="overlay-opt" onclick="Titan.openFile()"><i class="fa-solid fa-upload"></i> LOCAL FILE</div>
+                <div class="overlay-opt" onclick="window.open('https://www.myinstants.com/en/search/?name=meme', '_blank')"><i class="fa-solid fa-bolt"></i> EXTERNAL SOURCE</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="bottom-dock">
+        <div class="dock-circle" id="dock-mic" onclick="Titan.toggleMic()"><i class="fa-solid fa-microphone"></i></div>
+        <div class="dock-circle stop" onclick="Titan.panic()"><i class="fa-solid fa-power-off"></i></div>
+    </div>
+</div>
+
+<aside id="side-panel">
+    <div class="tab-switcher">
+        <button class="tab-btn active" onclick="Titan.switchTab('mixer', this)">AUTO ENGINE</button>
+        <button class="tab-btn" onclick="Titan.switchTab('recorder', this)">STUDIO REC</button>
+    </div>
+
+    <div id="tab-mixer" class="panel-content active">
+        <div class="panel-header-visual">
+            <i class="fa-solid fa-sliders large-icon active-icon"></i>
+            <h3 style="margin:0; font-size:22px; letter-spacing:4px; color:#555; text-transform:uppercase;">Logic Controllers</h3>
+        </div>
+
+        <div class="control-card">
+            <div class="card-label"><span>Master Gain</span> <span id="v-gain">100%</span></div>
+            <input type="range" id="sl-gain" min="0" max="150" value="100" oninput="Titan.setGain(this.value)">
+        </div>
+        <div class="control-card">
+            <div class="card-label"><span>Sub Frequency</span> <span id="v-bass">0dB</span></div>
+            <input type="range" id="sl-bass" min="-15" max="15" value="0" oninput="Titan.setEQ('low', this.value)">
+        </div>
+        <div class="control-card">
+            <div class="card-label"><span>High Fidelity</span> <span id="v-treble">0dB</span></div>
+            <input type="range" id="sl-treble" min="-15" max="15" value="0" oninput="Titan.setEQ('high', this.value)">
+        </div>
+
+        <button class="btn-reset" onclick="Titan.resetEngine()">
+            <i class="fa-solid fa-rotate-left"></i> Reset to 0dB
+        </button>
+    </div>
+
+    <div id="tab-recorder" class="panel-content">
+        <div class="panel-header-visual">
+            <i class="fa-solid fa-wave-square large-icon" id="rec-icon"></i>
+            <h3 style="margin:0; font-size:22px; letter-spacing:4px; color:#555; text-transform:uppercase;">Wave Capture</h3>
+        </div>
+
+        <div id="timer">00:00.00</div>
+        
+        <div class="rec-btn-main" id="rec-master" onclick="Titan.toggleRec()">
+            <div class="rec-btn-inner"></div>
+        </div>
+        <p style="text-align:center; margin-top:50px; color:#333; font-weight:900; font-size:13px; letter-spacing:2px; text-transform:uppercase;">Automated Logic Mapping</p>
+    </div>
+</aside>
+
+<div class="editor-overlay" id="editor-modal">
+    <div class="editor-modal">
+        <h2 style="margin:0; font-size:45px; font-weight:900; letter-spacing:-2px;">Surgical Trimmer</h2>
+        <div id="wave-editor"></div>
+        <div class="preview-btn" id="preview-btn" onclick="Titan.previewTrim()">
+            <i class="fa-solid fa-play"></i> EXECUTE PREVIEW
+        </div>
+        <div style="display:flex; gap:25px;">
+            <button onclick="Titan.saveTrim()" class="ebtn ebtn-save">COMMIT SURGERY</button>
+            <button onclick="Titan.closeEditor()" class="ebtn" style="background:transparent; color:white; border:1px solid #333;">ABORT</button>
+        </div>
+    </div>
+</div>
+
+<input type="file" id="f-input" hidden onchange="Titan.handleFile(this)">
+
+<script>
+/**
+ * TITAN OMNI-REDACTED v31
+ * MONOLITHIC AUDIO KERNEL
+ */
+const Titan = {
+    vault: JSON.parse(localStorage.getItem('titan_v31_db')) || {},
+    ctx: null, masterGain: null, lowShelf: null, highShelf: null,
+    activeNodes: new Map(), currentEditId: null, ws: null, wsRegions: null,
+    recorder: null, recChunks: [], previewNode: null, recTimer: null,
+
+    // KERNEL INITIALIZATION
+    boot() {
+        if (this.ctx) return;
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this.lowShelf = this.ctx.createBiquadFilter(); this.lowShelf.type = "lowshelf"; this.lowShelf.frequency.value = 350;
+        this.highShelf = this.ctx.createBiquadFilter(); this.highShelf.type = "highshelf"; this.highShelf.frequency.value = 3500;
+        this.masterGain = this.ctx.createGain();
+
+        this.lowShelf.connect(this.highShelf);
+        this.highShelf.connect(this.masterGain);
+        this.masterGain.connect(this.ctx.destination);
+    },
+
+    // UI RENDER ENGINE
+    render() {
+        const grid = document.getElementById('grid-canvas');
+        const addBtn = grid.querySelector('.add-wrapper');
+        grid.innerHTML = ''; grid.appendChild(addBtn);
+
+        Object.values(this.vault).forEach(snd => {
+            const wrap = document.createElement('div');
+            wrap.className = 'sound-wrapper';
+            wrap.innerHTML = `
+                <div class="tile-popups">
+                    <div class="pop-btn" onclick="Titan.openEditor('${snd.id}')"><i class="fa-solid fa-scissors"></i></div>
+                    <div class="pop-btn del" onclick="Titan.delete('${snd.id}')"><i class="fa-solid fa-trash-can"></i></div>
+                </div>
+                <div class="sound-tile" id="tile-${snd.id}" onclick="Titan.trigger('${snd.id}')">
+                    <i class="fa-solid fa-bolt-lightning"></i>
+                </div>
+                <input type="text" class="name-input" value="${snd.name}" onchange="Titan.rename('${snd.id}', this.value)">
+                <input type="text" class="key-input" value="${snd.key || ''}" placeholder="MACRO KEY" onkeydown="Titan.bindKey('${snd.id}', event)">
+            `;
+            grid.insertBefore(wrap, addBtn);
+        });
+    },
+
+    // AUDIO EXECUTION
+    async trigger(id) {
+        this.boot(); const snd = this.vault[id]; if (!snd) return;
+        try {
+            const res = await fetch(snd.src);
+            const buf = await this.ctx.decodeAudioData(await res.arrayBuffer());
+            const src = this.ctx.createBufferSource();
+            src.buffer = buf; src.connect(this.lowShelf);
+            
+            const start = snd.start || 0;
+            const end = (snd.end && snd.end > start) ? snd.end : buf.duration;
+            src.start(0, start, end - start);
+            
+            const tile = document.getElementById(`tile-${id}`);
+            if(tile) tile.style.borderColor = "var(--neon)";
+            this.activeNodes.set(src, id);
+            src.onended = () => { if(tile) tile.style.borderColor = "rgba(255,255,255,0.1)"; this.activeNodes.delete(src); };
+        } catch(e) { console.error("Playback Engine Interrupted"); }
+    },
+
+    // ENGINE PARAMETERS
+    setGain(v) { this.boot(); this.masterGain.gain.value = v/100; document.getElementById('v-gain').innerText = v + '%'; },
+    setEQ(type, val) { this.boot(); const n = type === 'low' ? this.lowShelf : this.highShelf; n.gain.value = val; document.getElementById(`v-${type==='low'?'bass':'treble'}`).innerText = val + 'dB'; },
+    
+    // NEW RESET LOGIC
+    resetEngine() {
+        document.getElementById('sl-gain').value = 100;
+        document.getElementById('sl-bass').value = 0;
+        document.getElementById('sl-treble').value = 0;
+        this.setGain(100); this.setEQ('low', 0); this.setEQ('high', 0);
+    },
+
+    // EMERGENCY PURGE
+    panic() { this.activeNodes.forEach((id, src) => { try { src.stop(); } catch(e){} }); this.activeNodes.clear(); this.render(); },
+
+    // STUDIO CAPTURE ENGINE
+    async toggleRec() {
+        this.boot();
+        const master = document.getElementById('rec-master');
+        const icon = document.getElementById('rec-icon');
+        if (!this.recorder || this.recorder.state === 'inactive') {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            this.recorder = new MediaRecorder(stream);
+            this.recChunks = [];
+            this.recorder.ondataavailable = e => this.recChunks.push(e.data);
+            this.recorder.onstop = () => {
+                const blob = new Blob(this.recChunks, { type: 'audio/webm' });
+                const r = new FileReader(); r.onload = (ev) => {
+                    const id = 'rec_' + Date.now();
+                    this.vault[id] = { id, name: 'NEW CAPTURE', src: ev.target.result, key: '', start: 0, end: 0 };
+                    this.save(); this.render();
+                }; r.readAsDataURL(blob);
+            };
+            this.recorder.start();
+            master.classList.add('recording');
+            icon.style.color = 'var(--danger)';
+            let start = Date.now();
+            this.recTimer = setInterval(() => { document.getElementById('timer').innerText = ((Date.now() - start)/1000).toFixed(2); }, 50);
+        } else {
+            this.recorder.stop();
+            master.classList.remove('recording');
+            icon.style.color = '#222';
+            clearInterval(this.recTimer);
+        }
+    },
+
+    // SURGICAL EDITOR
+    openEditor(id) {
+        this.currentEditId = id; document.getElementById('editor-modal').style.display = 'flex';
+        if(this.ws) this.ws.destroy();
+        this.ws = WaveSurfer.create({ container: '#wave-editor', waveColor: '#111', progressColor: '#2ce2a2', height: 220, barWidth: 5 });
+        this.wsRegions = this.ws.registerPlugin(WaveSurfer.Regions.create());
+        this.ws.load(this.vault[id].src);
+        this.ws.on('ready', () => this.wsRegions.addRegion({ start: this.vault[id].start || 0, end: this.vault[id].end || this.ws.getDuration(), color: 'rgba(44, 226, 162, 0.2)', drag: true, resize: true }));
+    },
+
+    async previewTrim() {
+        this.boot(); const reg = this.wsRegions.getRegions()[0]; if(!reg) return;
+        const btn = document.getElementById('preview-btn');
+        if(this.previewNode) { this.previewNode.stop(); this.previewNode = null; btn.classList.remove('playing'); return; }
+        const res = await fetch(this.vault[this.currentEditId].src);
+        const buf = await this.ctx.decodeAudioData(await res.arrayBuffer());
+        this.previewNode = this.ctx.createBufferSource();
+        this.previewNode.buffer = buf; this.previewNode.connect(this.lowShelf);
+        this.previewNode.start(0, reg.start, reg.end - reg.start);
+        btn.classList.add('playing');
+        this.previewNode.onended = () => { btn.classList.remove('playing'); this.previewNode = null; };
+    },
+
+    saveTrim() { const reg = this.wsRegions.getRegions()[0]; if(reg) { this.vault[this.currentEditId].start = reg.start; this.vault[this.currentEditId].end = reg.end; this.save(); } this.closeEditor(); },
+    closeEditor() { document.getElementById('editor-modal').style.display = 'none'; if(this.previewNode) this.previewNode.stop(); },
+
+    // CORE PERSISTENCE
+    save() { localStorage.setItem('titan_v31_db', JSON.stringify(this.vault)); },
+    switchTab(t, b) { document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); document.querySelectorAll('.panel-content').forEach(x=>x.classList.remove('active')); document.getElementById('tab-'+t).classList.add('active'); },
+    openFile() { document.getElementById('f-input').click(); },
+    handleFile(input) { const f = input.files[0]; const r = new FileReader(); r.onload = (e) => { const id = 's_'+Date.now(); this.vault[id] = { id, name: f.name.toUpperCase(), src: e.target.result }; this.save(); this.render(); }; r.readAsDataURL(f); },
+    rename(id, v) { this.vault[id].name = v.toUpperCase(); this.save(); },
+    bindKey(id, e) { e.preventDefault(); this.vault[id].key = e.key.toUpperCase(); e.target.value = e.key.toUpperCase(); this.save(); },
+    delete(id) { if(confirm("PERMANENTLY DESTRUCT SOURCE?")) { delete this.vault[id]; this.save(); this.render(); } },
+    toggleMic() { this.boot(); const b = document.getElementById('dock-mic'); if(!b.classList.contains('active')) { navigator.mediaDevices.getUserMedia({audio:true}).then(s => { window.tS = s; const n = this.ctx.createMediaStreamSource(s); n.connect(this.lowShelf); b.classList.add('active'); }); } else { window.tS.getTracks().forEach(t=>t.stop()); b.classList.remove('active'); } }
+};
+
+window.addEventListener('keydown', (e) => { if(e.code==='Space') Titan.panic(); if(document.activeElement.tagName==='INPUT') return; const m = Object.values(Titan.vault).find(s=>s.key===e.key.toUpperCase()); if(m) Titan.trigger(m.id); });
+Titan.render();
+</script>
+</body>
+</html>
