@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SoundSystem | PRO ENGINE</title>
+    
+    <script src="https://unpkg.com/wavesurfer.js@7"></script>
+    <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        /* TITAN OMNI-REDACTED v31 
+           CORE SCALING & RESPONSIVE ARCHITECTURE 
+        */
+        :root {
+            --bg-deep: #000000;
+            --ios-gray: #1c1c1e;
+            --ios-bright: #2c2c2e;
+            --neon: #2ce2a2;
+            --neon-glow: rgba(44, 226, 162, 0.4);
+            --danger: #ff3b30;
+            --danger-glow: rgba(255, 59, 48, 0.4);
+            --ios-blue: #0a84ff;
+            --glass: rgba(28, 28, 30, 0.9);
+            --blur: blur(65px);
+            --border: 1px solid rgba(255, 255, 255, 0.12);
+            --font-main: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --transition-ultra: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            --shadow-hd: 0 45px 90px rgba(0,0,0,0.8);
+        }
+
+        * { 
+            box-sizing: border-box; 
+            outline: none; 
+            -webkit-font-smoothing: antialiased; 
+            scrollbar-width: none; 
+        }
+        *::-webkit-scrollbar { display: none; }
+
+        body {
+            background: var(--bg-deep);
+            color: white;
+            font-family: var(--font-main);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            user-select: none;
+            letter-spacing: -0.01em;
+        }
+
+        /* --- GLOBAL LAYOUT SCALING --- */
+        #main-stage {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: 
+                radial-gradient(circle at 5% 5%, rgba(44, 226, 162, 0.04) 0%, transparent 45%),
+                radial-gradient(circle at 95% 95%, rgba(10, 132, 255, 0.04) 0%, transparent 45%);
+            transition: var(--transition-ultra);
+        }
+
+        #grid-canvas {
+            flex: 1;
+            padding: 40px 60px; /* Reduced from 85px for better fit */
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 40px; /* Adjusted gap for density */
+            overflow-y: auto;
+            align-content: start;
+        }
+
+        /* --- SOUND TILE ARCHITECTURE --- */
+        .sound-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            animation: tileSpawn 0.8s cubic-bezier(0.2, 1, 0.2, 1) forwards;
+        }
+
+        @keyframes tileSpawn { 
+            from { opacity: 0; transform: translateY(60px) scale(0.85); } 
+            to { opacity: 1; transform: translateY(0) scale(1); } 
+        }
+
+        .tile-popups {
+            position: absolute;
+            top: -30px;
+            display: flex;
+            gap: 15px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: var(--transition-ultra);
+            z-index: 600;
+        }
+        .sound-wrapper:hover .tile-popups { opacity: 1; transform: translateY(0); }
+
+        .pop-btn {
+            width: 40px; height: 40px;
+            background: white; color: black;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 14px; box-shadow: var(--shadow-hd); cursor: pointer; transition: 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .pop-btn:hover { transform: scale(1.3) rotate(15deg); background: var(--neon); }
+        .pop-btn.del:hover { background: var(--danger); color: white; }
+
+        .sound-tile {
+            width: 160px; height: 160px; /* Scaled down slightly from 185px */
+            background: var(--ios-gray);
+            backdrop-filter: var(--blur);
+            border: var(--border);
+            border-radius: 45px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; position: relative; transition: var(--transition-ultra);
+            z-index: 10;
+        }
+        .sound-tile:hover {
+            transform: scale(1.1) translateY(-10px);
+            border-color: var(--neon);
+            box-shadow: 0 40px 70px rgba(0,0,0,0.8), 0 0 40px var(--neon-glow);
+            background: var(--ios-bright);
+        }
+        .sound-tile i { font-size: 50px; color: #333; transition: 0.5s; }
+        .sound-tile:hover i { color: var(--neon); transform: rotate(-8deg); }
+
+        .name-input { 
+            margin-top: 20px; background: transparent; border: none; 
+            color: white; text-align: center; font-weight: 800; font-size: 16px; 
+            width: 150px; letter-spacing: -0.5px;
+        }
+        .key-input { 
+            margin-top: 10px; background: rgba(44, 226, 162, 0.1); 
+            border: 1px solid rgba(44, 226, 162, 0.2); color: var(--neon); 
+            text-align: center; font-size: 11px; width: 90px; padding: 6px; 
+            border-radius: 12px; font-weight: 900; 
+        }
+
+        /* --- ADD TILE COMPONENT --- */
+        .add-wrapper { position: relative; width: 160px; height: 160px; }
+        .add-tile { 
+            width: 160px; height: 160px; 
+            border: 3px dashed #333; 
+            border-radius: 45px; display: flex; align-items: center; justify-content: center; 
+            font-size: 45px; color: #333; transition: 0.5s; 
+        }
+        .add-wrapper:hover .add-tile { border-color: var(--neon); color: var(--neon); transform: rotate(90deg); }
+        
+        .add-overlay { 
+            position: absolute; inset: 0; background: var(--ios-gray); 
+            border-radius: 45px; display: flex; flex-direction: column; 
+            opacity: 0; pointer-events: none; transition: var(--transition-ultra); 
+            overflow: hidden; z-index: 1100; box-shadow: var(--shadow-hd); 
+        }
+        .add-wrapper:hover .add-overlay { opacity: 1; pointer-events: auto; }
+        .overlay-opt { 
+            flex: 1; display: flex; align-items: center; justify-content: center; 
+            gap: 12px; font-size: 13px; font-weight: 900; cursor: pointer; 
+            border-bottom: 1px solid rgba(255,255,255,0.03); 
+        }
+        .overlay-opt:hover { background: var(--ios-bright); color: var(--neon); }
+
+        /* --- SIDE PANEL ARCHITECTURE --- */
+        #side-panel {
+            width: 400px; /* Reduced from 520px */
+            background: var(--glass);
+            backdrop-filter: var(--blur);
+            border-left: var(--border);
+            display: flex; flex-direction: column; z-index: 5000;
+        }
+
+        .tab-switcher { display: flex; padding: 40px 30px 20px 30px; gap: 10px; }
+        .tab-btn { 
+            flex: 1; padding: 18px; background: var(--ios-bright); 
+            border: none; color: #555; border-radius: 20px; 
+            font-weight: 900; cursor: pointer; font-size: 11px; 
+            text-transform: uppercase; transition: 0.4s; letter-spacing: 1px;
+        }
+        .tab-btn.active { background: white; color: black; box-shadow: 0 15px 35px rgba(0,0,0,0.6); }
+
+        .panel-content { flex: 1; padding: 30px; display: none; overflow-y: auto; }
+        .panel-content.active { display: block; }
+
+        .panel-header-visual { padding: 10px 0 40px 0; display: flex; flex-direction: column; align-items: center; }
+        .large-icon { font-size: 80px; color: #222; margin-bottom: 20px; transition: 1s; }
+        .active-icon { color: var(--ios-blue) !important; }
+
+        /* MIXER CONTROLS */
+        .control-card { background: var(--ios-gray); padding: 25px; border-radius: 35px; margin-bottom: 25px; border: var(--border); }
+        .card-label { display: flex; justify-content: space-between; font-size: 11px; font-weight: 900; color: #444; text-transform: uppercase; margin-bottom: 25px; letter-spacing: 1px; }
+        
+        input[type="range"] { -webkit-appearance: none; width: 100%; height: 10px; background: #222; border-radius: 20px; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; background: white; border-radius: 50%; cursor: pointer; border: 4px solid var(--ios-gray); }
+
+        .btn-reset { width: 100%; padding: 20px; border-radius: 20px; background: transparent; border: 2px solid #333; color: #666; font-weight: 900; cursor: pointer; transition: 0.4s; }
+        .btn-reset:hover { border-color: var(--neon); color: var(--neon); }
+
+        /* RECORDER */
+        #timer { font-size: 60px; font-weight: 200; text-align: center; margin-bottom: 40px; color: white; }
+        .rec-btn-main { width: 100px; height: 100px; border-radius: 50%; border: 6px solid white; display: flex; align-items: center; justify-content: center; margin: 0 auto; cursor: pointer; }
+        .rec-btn-inner { width: 75px; height: 75px; background: var(--danger); border-radius: 50%; transition: 0.6s; }
+        .recording .rec-btn-inner { border-radius: 20px; transform: scale(0.6); }
+
+        /* BOTTOM DOCK */
+        #bottom-dock { height: 140px; display: flex; justify-content: center; align-items: center; gap: 60px; background: linear-gradient(to top, #000, transparent); padding-bottom: 40px; }
+        .dock-circle { width: 85px; height: 85px; background: var(--ios-gray); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; cursor: pointer; border: var(--border); transition: var(--transition-ultra); color: white; }
+        .dock-circle:hover { transform: translateY(-15px) scale(1.2); background: white; color: black; }
+        .dock-circle.stop { background: var(--danger); border-color: var(--danger); }
+        .dock-circle.active { background: var(--neon); color: black; }
+
+        /* --- EDITOR MODAL --- */
+        .editor-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.98); backdrop-filter: blur(60px); z-index: 99999; align-items: center; justify-content: center; padding: 20px; }
+        .editor-modal { background: var(--ios-gray); width: 900px; max-width: 100%; padding: 40px; border-radius: 60px; border: var(--border); }
+        #wave-editor { background: #000; border-radius: 30px; margin: 30px 0; border: 1px solid #222; overflow: hidden; }
+        .ebtn { flex: 1; padding: 25px; border-radius: 25px; border: none; font-weight: 900; font-size: 16px; cursor: pointer; }
+
+        /* --- RESPONSIVE / MOBILE HACKS --- */
+        @media screen and (max-width: 1024px) {
+            body { flex-direction: column; overflow-y: auto; height: auto; }
+            #side-panel { width: 100vw; height: auto; border-left: none; border-top: var(--border); }
+            #main-stage { width: 100vw; height: 100vh; }
+            #grid-canvas { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); padding: 30px; gap: 25px; }
+            .sound-tile, .add-tile, .add-wrapper { width: 140px; height: 140px; }
+            .editor-modal { width: 95vw; border-radius: 40px; }
+        }
+
+        @media screen and (max-width: 480px) {
+            h1 { font-size: 40px !important; }
+            #grid-canvas { grid-template-columns: repeat(2, 1fr); gap: 20px; padding: 20px; }
+            .sound-tile, .add-tile, .add-wrapper { width: 100%; height: 150px; }
+            #bottom-dock { gap: 30px; }
+        }
+    </style>
+</head>
+<body onclick="Titan.boot()">
+
+<div id="main-stage">
+    <div style="padding: 40px 60px 0 60px; display:flex; justify-content:space-between; align-items:flex-end;">
+        <div>
+            <h1 style="margin:0; font-size:50px; font-weight:900; letter-spacing:-3px; color:white;">SOUND <span style="color:var(--neon)">BOARD</span></h1>
+            <p style="margin:10px 0 0 0; color:#444; font-size:12px; font-weight:900; letter-spacing:5px; text-transform:uppercase;">#v31_PRO</p>
+        </div>
+        <div style="border:var(--border); padding:12px 25px; border-radius:20px; font-size:11px; font-weight:900; color:var(--neon); letter-spacing:1px; background:rgba(255,255,255,0.02); text-transform:uppercase;">
+            Engine: Ready
+        </div>
+    </div>
+
+    <div id="grid-canvas">
+        <div class="add-wrapper">
+            <div class="add-tile"><i class="fa-solid fa-plus"></i></div>
+            <div class="add-overlay">
+                <div class="overlay-opt" onclick="Titan.openFile()"><i class="fa-solid fa-upload"></i> FILE</div>
+                <div class="overlay-opt" onclick="window.open('https://www.myinstants.com', '_blank')"><i class="fa-solid fa-bolt"></i> WEB</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="bottom-dock">
+        <div class="dock-circle" id="dock-mic" onclick="Titan.toggleMic()"><i class="fa-solid fa-microphone"></i></div>
+        <div class="dock-circle stop" onclick="Titan.panic()"><i class="fa-solid fa-power-off"></i></div>
+    </div>
+</div>
+
+<aside id="side-panel">
+    <div class="tab-switcher">
+        <button class="tab-btn active" onclick="Titan.switchTab('mixer', this)">ENGINE</button>
+        <button class="tab-btn" onclick="Titan.switchTab('recorder', this)">STUDIO</button>
+    </div>
+
+    <div id="tab-mixer" class="panel-content active">
+        <div class="panel-header-visual">
+            <i class="fa-solid fa-sliders large-icon active-icon"></i>
+            <h3 style="margin:0; font-size:16px; letter-spacing:3px; color:#555; text-transform:uppercase;">Master Logic</h3>
+        </div>
+
+        <div class="control-card">
+            <div class="card-label"><span>Gain</span> <span id="v-gain">100%</span></div>
+            <input type="range" id="sl-gain" min="0" max="150" value="100" oninput="Titan.setGain(this.value)">
+        </div>
+        <div class="control-card">
+            <div class="card-label"><span>Bass</span> <span id="v-bass">0dB</span></div>
+            <input type="range" id="sl-bass" min="-15" max="15" value="0" oninput="Titan.setEQ('low', this.value)">
+        </div>
+        <div class="control-card">
+            <div class="card-label"><span>Treble</span> <span id="v-treble">0dB</span></div>
+            <input type="range" id="sl-treble" min="-15" max="15" value="0" oninput="Titan.setEQ('high', this.value)">
+        </div>
+
+        <button class="btn-reset" onclick="Titan.resetEngine()">
+            <i class="fa-solid fa-rotate-left"></i> Reset Audio
+        </button>
+    </div>
+
+    <div id="tab-recorder" class="panel-content">
+        <div class="panel-header-visual">
+            <i class="fa-solid fa-wave-square large-icon" id="rec-icon"></i>
+            <h3 style="margin:0; font-size:16px; letter-spacing:3px; color:#555; text-transform:uppercase;">Capture</h3>
+        </div>
+        <div id="timer">00:00.00</div>
+        <div class="rec-btn-main" id="rec-master" onclick="Titan.toggleRec()">
+            <div class="rec-btn-inner"></div>
+        </div>
+    </div>
+</aside>
+
+<div class="editor-overlay" id="editor-modal">
+    <div class="editor-modal">
+        <h2 style="margin:0; font-size:35px; font-weight:900; letter-spacing:-1px;">Precision Trimmer</h2>
+        <div id="wave-editor"></div>
+        <div style="display:flex; gap:20px;">
+            <button onclick="Titan.saveTrim()" class="ebtn" style="background:var(--neon); color:black;">SAVE</button>
+            <button onclick="Titan.closeEditor()" class="ebtn" style="background:transparent; color:white; border:1px solid #333;">CANCEL</button>
+        </div>
+    </div>
+</div>
+
+<input type="file" id="f-input" hidden onchange="Titan.handleFile(this)">
+
+<script>
+const Titan = {
+    vault: JSON.parse(localStorage.getItem('titan_v31_db')) || {},
+    ctx: null, masterGain: null, lowShelf: null, highShelf: null,
+    activeNodes: new Map(), currentEditId: null, ws: null,
+    recorder: null, recChunks: [], previewNode: null, recTimer: null,
+
+    boot() {
+        if (this.ctx) return;
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this.lowShelf = this.ctx.createBiquadFilter(); this.lowShelf.type = "lowshelf"; this.lowShelf.frequency.value = 350;
+        this.highShelf = this.ctx.createBiquadFilter(); this.highShelf.type = "highshelf"; this.highShelf.frequency.value = 3500;
+        this.masterGain = this.ctx.createGain();
+        this.lowShelf.connect(this.highShelf);
+        this.highShelf.connect(this.masterGain);
+        this.masterGain.connect(this.ctx.destination);
+    },
+
+    render() {
+        const grid = document.getElementById('grid-canvas');
+        const addBtn = grid.querySelector('.add-wrapper');
+        grid.innerHTML = ''; grid.appendChild(addBtn);
+        Object.values(this.vault).forEach(snd => {
+            const wrap = document.createElement('div');
+            wrap.className = 'sound-wrapper';
+            wrap.innerHTML = `
+                <div class="tile-popups">
+                    <div class="pop-btn" onclick="Titan.openEditor('${snd.id}')"><i class="fa-solid fa-scissors"></i></div>
+                    <div class="pop-btn del" onclick="Titan.delete('${snd.id}')"><i class="fa-solid fa-trash-can"></i></div>
+                </div>
+                <div class="sound-tile" id="tile-${snd.id}" onclick="Titan.trigger('${snd.id}')">
+                    <i class="fa-solid fa-bolt-lightning"></i>
+                </div>
+                <input type="text" class="name-input" value="${snd.name}" onchange="Titan.rename('${snd.id}', this.value)">
+                <input type="text" class="key-input" value="${snd.key || ''}" placeholder="KEY" onkeydown="Titan.bindKey('${snd.id}', event)">
+            `;
+            grid.insertBefore(wrap, addBtn);
+        });
+    },
+
+    async trigger(id) {
+        this.boot(); const snd = this.vault[id]; if (!snd) return;
+        try {
+            const res = await fetch(snd.src);
+            const buf = await this.ctx.decodeAudioData(await res.arrayBuffer());
+            const src = this.ctx.createBufferSource();
+            src.buffer = buf; src.connect(this.lowShelf);
+            const start = snd.start || 0;
+            const end = (snd.end && snd.end > start) ? snd.end : buf.duration;
+            src.start(0, start, end - start);
+            const tile = document.getElementById(`tile-${id}`);
+            if(tile) tile.style.borderColor = "var(--neon)";
+            this.activeNodes.set(src, id);
+            src.onended = () => { if(tile) tile.style.borderColor = "rgba(255,255,255,0.1)"; this.activeNodes.delete(src); };
+        } catch(e) {}
+    },
+
+    setGain(v) { this.boot(); this.masterGain.gain.value = v/100; document.getElementById('v-gain').innerText = v + '%'; },
+    setEQ(type, val) { this.boot(); const n = type === 'low' ? this.lowShelf : this.highShelf; n.gain.value = val; document.getElementById(`v-${type==='low'?'bass':'treble'}`).innerText = val + 'dB'; },
+    resetEngine() { this.setGain(100); this.setEQ('low', 0); this.setEQ('high', 0); document.getElementById('sl-gain').value = 100; document.getElementById('sl-bass').value = 0; document.getElementById('sl-treble').value = 0; },
+    panic() { this.activeNodes.forEach((id, src) => { try { src.stop(); } catch(e){} }); this.activeNodes.clear(); this.render(); },
+
+    async toggleRec() {
+        this.boot();
+        if (!this.recorder || this.recorder.state === 'inactive') {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            this.recorder = new MediaRecorder(stream);
+            this.recChunks = [];
+            this.recorder.ondataavailable = e => this.recChunks.push(e.data);
+            this.recorder.onstop = () => {
+                const blob = new Blob(this.recChunks, { type: 'audio/webm' });
+                const r = new FileReader(); r.onload = (ev) => {
+                    const id = 'rec_' + Date.now();
+                    this.vault[id] = { id, name: 'CAPTURE', src: ev.target.result, key: '', start: 0, end: 0 };
+                    this.save(); this.render();
+                }; r.readAsDataURL(blob);
+            };
+            this.recorder.start();
+            document.getElementById('rec-master').classList.add('recording');
+            let start = Date.now();
+            this.recTimer = setInterval(() => { document.getElementById('timer').innerText = ((Date.now() - start)/1000).toFixed(2); }, 50);
+        } else {
+            this.recorder.stop();
+            document.getElementById('rec-master').classList.remove('recording');
+            clearInterval(this.recTimer);
+        }
+    },
+
+    openEditor(id) {
+        this.currentEditId = id; document.getElementById('editor-modal').style.display = 'flex';
+        if(this.ws) this.ws.destroy();
+        this.ws = WaveSurfer.create({ container: '#wave-editor', waveColor: '#111', progressColor: '#2ce2a2', height: 150 });
+        this.wsRegions = this.ws.registerPlugin(WaveSurfer.Regions.create());
+        this.ws.load(this.vault[id].src);
+        this.ws.on('ready', () => this.wsRegions.addRegion({ start: this.vault[id].start || 0, end: this.vault[id].end || this.ws.getDuration(), color: 'rgba(44, 226, 162, 0.2)', drag: true, resize: true }));
+    },
+
+    saveTrim() { const reg = this.wsRegions.getRegions()[0]; if(reg) { this.vault[this.currentEditId].start = reg.start; this.vault[this.currentEditId].end = reg.end; this.save(); } this.closeEditor(); },
+    closeEditor() { document.getElementById('editor-modal').style.display = 'none'; },
+    save() { localStorage.setItem('titan_v31_db', JSON.stringify(this.vault)); },
+    switchTab(t, b) { document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); document.querySelectorAll('.panel-content').forEach(x=>x.classList.remove('active')); document.getElementById('tab-'+t).classList.add('active'); },
+    openFile() { document.getElementById('f-input').click(); },
+    handleFile(input) { const f = input.files[0]; const r = new FileReader(); r.onload = (e) => { const id = 's_'+Date.now(); this.vault[id] = { id, name: f.name.toUpperCase(), src: e.target.result }; this.save(); this.render(); }; r.readAsDataURL(f); },
+    rename(id, v) { this.vault[id].name = v.toUpperCase(); this.save(); },
+    bindKey(id, e) { e.preventDefault(); this.vault[id].key = e.key.toUpperCase(); e.target.value = e.key.toUpperCase(); this.save(); },
+    delete(id) { if(confirm("DELETE?")) { delete this.vault[id]; this.save(); this.render(); } },
+    toggleMic() { this.boot(); const b = document.getElementById('dock-mic'); if(!b.classList.contains('active')) { navigator.mediaDevices.getUserMedia({audio:true}).then(s => { window.tS = s; const n = this.ctx.createMediaStreamSource(s); n.connect(this.lowShelf); b.classList.add('active'); }); } else { window.tS.getTracks().forEach(t=>t.stop()); b.classList.remove('active'); } }
+};
+
+window.addEventListener('keydown', (e) => { if(e.code==='Space') Titan.panic(); if(document.activeElement.tagName==='INPUT') return; const m = Object.values(Titan.vault).find(s=>s.key===e.key.toUpperCase()); if(m) Titan.trigger(m.id); });
+Titan.render();
+</script>
+</body>
+</html>
